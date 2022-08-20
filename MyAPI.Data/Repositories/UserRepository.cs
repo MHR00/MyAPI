@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using MyAPI.Common.Exceptions;
 using MyAPI.Common.Utilities;
 using MyAPI.Data.Contracts;
 using MyAPI.Entities;
@@ -22,11 +23,14 @@ namespace MyAPI.Data.Repositories
             return Table.Where(p => p.UserName == username && p.PasswordHash == passwordHash).SingleOrDefaultAsync(cancellationToken);
         }
 
-        public Task AddAsync(User user , string password , CancellationToken cancellationToken)
+        public async Task AddAsync(User user , string password , CancellationToken cancellationToken)
         {
+            var exists = await TableNoTracking.AnyAsync(p => p.UserName == user.UserName);
+            if (exists)
+                throw new BadRequestException("نام کاربری تکرار است");
             var passwordHash = SecurityHelper.GetSha256Hash(password);
             user.PasswordHash = passwordHash;
-            return base.AddAsync(user, cancellationToken);
+            await base.AddAsync(user, cancellationToken);
         }
     }
 }
