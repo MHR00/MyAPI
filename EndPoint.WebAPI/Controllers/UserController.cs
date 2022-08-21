@@ -1,9 +1,12 @@
 ﻿using EndPoint.WebAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MyAPI.Common.Exceptions;
 using MyAPI.Data.Contracts;
 using MyAPI.Entities;
+using MyAPI.Services.Services;
 using MyAPI.WebFramework.api;
 
 namespace EndPoint.WebAPI.Controllers
@@ -13,10 +16,12 @@ namespace EndPoint.WebAPI.Controllers
     public class UserController : ControllerBase
     {
         private readonly IUserRepository userRepository;
+        private readonly IJwtService jwtService;
 
-        public UserController(IUserRepository userRepository)
+        public UserController(IUserRepository userRepository, IJwtService jwtService)
         {
             this.userRepository = userRepository;
+            this.jwtService = jwtService;
         }
         [HttpGet]
         public async Task<ApiResult<List<User>>> Get(CancellationToken cancellationToken)
@@ -32,6 +37,18 @@ namespace EndPoint.WebAPI.Controllers
             if (user == null)
                 return NotFound();
             return Ok(user);
+        }
+
+        [HttpGet("[action]")]
+        [AllowAnonymous]
+        public async Task<string> Token(string username, string password, CancellationToken cancellationToken)
+        {
+            var user = await userRepository.GetByUserAndPass(username, password, cancellationToken);
+            if (user == null)
+                throw new BadRequestException("نام کاربری یا رمز عبور اشتباه است");
+
+            var jwt = JwtService.Generate(user);
+            return jwt;
         }
 
         [HttpPost]

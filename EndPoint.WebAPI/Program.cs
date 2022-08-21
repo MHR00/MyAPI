@@ -1,10 +1,15 @@
 using ElmahCore.Mvc;
 using ElmahCore.Sql;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
+using MyAPI.Common;
 using MyAPI.Common.Helper;
 using MyAPI.Data;
 using MyAPI.Data.Contracts;
 using MyAPI.Data.Repositories;
+using MyAPI.Services.Services;
+using MyAPI.WebFramework.Configuration;
 using MyAPI.WebFramework.Middlewares;
 using NLog;
 using NLog.Web;
@@ -17,20 +22,43 @@ try
     var builder = WebApplication.CreateBuilder(args);
 
     // Add services to the container.
+    
+    var test = builder.Services.Configure<SiteSettings>(builder.Configuration.GetSection(nameof(SiteSettings)));
+    
     builder.Services.AddDbContext<ApplicationDbContext>(option =>
     {
         option.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer"));
     });
-    //builder.Services.AddElmah<SqlErrorLog>(option =>
-    //{
-    //    option.Path = "/elmah-errors";
-    //    option.ConnectionString = builder.Configuration.GetConnectionString("Elmah");
-    //});
+    builder.Services.AddElmah<SqlErrorLog>(option =>
+    {
+        option.Path = "/elmah-errors";
+        option.ConnectionString = builder.Configuration.GetConnectionString("Elmah");
+    });
+   
 
     //Register Repository
     builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
     builder.Services.AddScoped<IUserRepository, UserRepository>();
-    
+    builder.Services.AddScoped<IJwtService, JwtService>();
+    builder.Services.AddJwtAuthentication();
+
+    //AddAuthorization
+    //Option 1
+    builder.Services.AddAuthorization(options =>
+    {
+        options.FallbackPolicy = new AuthorizationPolicyBuilder()
+            .RequireAuthenticatedUser()
+            .Build();
+    });
+    //Option 2
+    //builder.Services.AddControllers(config =>
+    //{
+    //    var policy = new AuthorizationPolicyBuilder()
+    //                     .RequireAuthenticatedUser()
+    //                     .Build();
+    //    config.Filters.Add(new AuthorizeFilter(policy));
+    //});
+
     builder.Services.AddControllers();
     // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
     builder.Services.AddEndpointsApiExplorer();
@@ -53,9 +81,9 @@ try
         app.UseSwaggerUI();
     }
 
-    //app.UseElmah();
+    app.UseElmah();
     app.UseHttpsRedirection();
-
+    app.UseAuthentication();
     app.UseAuthorization();
 
     app.MapControllers();
