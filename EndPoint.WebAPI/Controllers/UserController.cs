@@ -2,6 +2,7 @@
 using EndPoint.WebAPI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MyAPI.Common.Exceptions;
@@ -16,16 +17,31 @@ namespace EndPoint.WebAPI.Controllers
     [ApiController]
     public class UserController : ControllerBase
     {
-        private readonly IUserRepository userRepository;
-        private readonly ILogger<UserController> logger;
-        private readonly IJwtService jwtService;
+        private readonly IUserRepository _userRepository;
+        private readonly IJwtService _jwtService;
+        private readonly ILogger<UserController> _logger;
+        private readonly UserManager<User> _userManager;
+        private readonly RoleManager<Role> _roleManager;
+        private readonly SignInManager<User> _signInManager;
+        private readonly IConfiguration _config;
 
 
-        public UserController(IUserRepository userRepository, IJwtService jwtService, ILogger<UserController> logger)
+
+        public UserController(IUserRepository userRepository,
+            IJwtService jwtService,
+            ILogger<UserController> logger,
+            UserManager<User> userManager,
+            RoleManager<Role> roleManager,
+            SignInManager<User> signInManager,
+            IConfiguration config)
         {
-            this.userRepository = userRepository;
-            this.jwtService = jwtService;
-            this.logger = logger;
+            _userRepository = userRepository;
+            _jwtService = jwtService;
+            _logger = logger;
+            _userManager = userManager;
+            _roleManager = roleManager;
+            _signInManager = signInManager;
+            _config = config;
         }
         [HttpGet]
         public async Task<ApiResult<List<User>>> Get(CancellationToken cancellationToken)
@@ -35,8 +51,10 @@ namespace EndPoint.WebAPI.Controllers
         }
 
         [HttpGet("{id:int}")]
-        public async Task<ApiResult<User>> Get(int id , CancellationToken cancellationToken)
+        [AllowAnonymous]
+        public async Task<ApiResult<User>> Get(int id, CancellationToken cancellationToken)
         {
+            var user2 = await userManager.FindByIdAsync(id.ToString());
             var user = await userRepository.GetByIdAsync(cancellationToken, id);
             if (user == null)
                 return NotFound();
@@ -71,14 +89,26 @@ namespace EndPoint.WebAPI.Controllers
                 Age = userDto.Age,
                 FullName = userDto.FullName,
                 Gender = userDto.Gender,
-                UserName = userDto.UserName
+                UserName = userDto.UserName,
+                Email = userDto.Email
             };
-            await userRepository.AddAsync(user, userDto.Password, cancellationToken);
+
+            var result = await userManager.CreateAsync(user, userDto.Password);
+
+            var result2 = await roleManager.CreateAsync(new Role
+            {
+                Name = "Admin",
+                Description = "admin role"
+            });
+
+            var result3 = await userManager.AddToRoleAsync(user, "Admin");
+
+            //await userRepository.AddAsync(user, userDto.Password, cancellationToken);
             return user;
         }
 
         [HttpPut]
-        public async Task<ApiResult> Update(int id , User user, CancellationToken cancellationToken)
+        public async Task<ApiResult> Update(int id, User user, CancellationToken cancellationToken)
         {
             var updateUser = await userRepository.GetByIdAsync(cancellationToken, id);
             updateUser.UserName = user.UserName;

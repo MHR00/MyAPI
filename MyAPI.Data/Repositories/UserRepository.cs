@@ -25,7 +25,7 @@ namespace MyAPI.Data.Repositories
 
         public Task UpdateSecuirtyStampAsync(User user , CancellationToken cancellationToken)
         {
-            user.SecurityStamp = Guid.NewGuid();
+           
             return UpdateAsync(user, cancellationToken);
         }
 

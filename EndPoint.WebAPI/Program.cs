@@ -30,6 +30,9 @@ try
     {
         option.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer"));
     });
+
+    builder.Services.AddCustomIdentity();
+
     builder.Services.AddElmah<SqlErrorLog>(option =>
     {
         option.Path = "/elmah-errors";
