@@ -14,8 +14,9 @@ using MyAPI.WebFramework.Middlewares;
 using NLog;
 using NLog.Web;
 
+
 var logger = NLog.LogManager.Setup().LoadConfigurationFromAppSettings().GetCurrentClassLogger();
-logger.Debug("init main");
+//logger.Debug("init main");
 
 try
 {
@@ -23,7 +24,7 @@ try
 
     // Add services to the container.
     
-    var test = builder.Services.Configure<SiteSettings>(builder.Configuration.GetSection(nameof(SiteSettings)));
+    builder.Services.Configure<SiteSettings>(builder.Configuration.GetSection(nameof(SiteSettings)));
     
     builder.Services.AddDbContext<ApplicationDbContext>(option =>
     {
@@ -92,14 +93,24 @@ try
 }
 catch (Exception exception)
 {
-    //NLog:catch setup errors
-    logger.Error(exception , "Stopeed program because of exception");
-    throw;
+   
+    string type = exception.GetType().Name;
+    if (type.Equals("StopTheHostException", StringComparison.Ordinal))
+    {
+        //NLog:catch setup errors
+        logger.Error(exception, "Stopeed program because of exception");
+        throw;
+    }
+
+    logger.Fatal(exception, "Unhandled exception");
+    
+    
 }
 finally
 {
     // Ensure to flush and stop internal timers/threads before application-exit (Avoid segmentation fault on Linux)
     NLog.LogManager.Shutdown();
+    
 }
 
 

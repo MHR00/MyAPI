@@ -21,7 +21,7 @@ namespace MyAPI.WebFramework.Configuration
             }).AddJwtBearer(options =>
             {
                 var secretkey = Encoding.UTF8.GetBytes("MySecretKey123456789");
-                var encryptionkey = Encoding.UTF8.GetBytes("MySecretKey123456789");
+                var encryptionkey = Encoding.UTF8.GetBytes("16CharEncryptKey");
 
                 var validationParameters = new TokenValidationParameters
                 {
@@ -40,7 +40,7 @@ namespace MyAPI.WebFramework.Configuration
                     ValidateIssuer = true, //default : false
                     ValidIssuer = "Mywebsite",
 
-                    //TokenDecryptionKey = new SymmetricSecurityKey(encryptionkey)
+                    TokenDecryptionKey = new SymmetricSecurityKey(encryptionkey)
                 };
 
                 options.RequireHttpsMetadata = false;

@@ -1,4 +1,5 @@
-﻿using EndPoint.WebAPI.Models;
+﻿using ElmahCore;
+using EndPoint.WebAPI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -16,12 +17,15 @@ namespace EndPoint.WebAPI.Controllers
     public class UserController : ControllerBase
     {
         private readonly IUserRepository userRepository;
+        private readonly ILogger<UserController> logger;
         private readonly IJwtService jwtService;
 
-        public UserController(IUserRepository userRepository, IJwtService jwtService)
+
+        public UserController(IUserRepository userRepository, IJwtService jwtService, ILogger<UserController> logger)
         {
             this.userRepository = userRepository;
             this.jwtService = jwtService;
+            this.logger = logger;
         }
         [HttpGet]
         public async Task<ApiResult<List<User>>> Get(CancellationToken cancellationToken)
@@ -47,13 +51,21 @@ namespace EndPoint.WebAPI.Controllers
             if (user == null)
                 throw new BadRequestException("نام کاربری یا رمز عبور اشتباه است");
 
-            var jwt = JwtService.Generate(user);
+            var jwt = jwtService.Generate(user);
             return jwt;
         }
 
         [HttpPost]
+        [AllowAnonymous]
         public async Task<ApiResult<User>> Create(UserDto userDto, CancellationToken cancellationToken)
         {
+            logger.LogError("متد Create فراخوانی شد");
+            HttpContext.RiseError(new Exception("متد Create فراخوانی شد"));
+
+            //var exists = await userRepository.TableNoTracking.AnyAsync(p => p.UserName == userDto.UserName);
+            //if (exists)
+            //    return BadRequest("نام کاربری تکراری است");
+
             var user = new User
             {
                 Age = userDto.Age,
@@ -62,8 +74,7 @@ namespace EndPoint.WebAPI.Controllers
                 UserName = userDto.UserName
             };
             await userRepository.AddAsync(user, userDto.Password, cancellationToken);
-            return Ok(user);
-        
+            return user;
         }
 
         [HttpPut]

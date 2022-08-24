@@ -7,5 +7,7 @@ namespace MyAPI.Data.Contracts
         Task<User> GetByUserAndPass(string username, string password, CancellationToken cancellationToken);
 
         Task AddAsync(User user, string password, CancellationToken cancellationToken);
+        Task UpdateSecuirtyStampAsync(User user, CancellationToken cancellationToken);
+        Task UpdateLastLoginDateAsync(User user, CancellationToken cancellationToken);
     }
 }
